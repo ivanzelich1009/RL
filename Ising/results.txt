@@ -1,0 +1,24 @@
+Energy Statistics
+----------------------------------------
+Real mean energy: -1.43283203125
+Generated mean energy: -1.555453125
+Absolute energy error: 0.12262109375000008
+
+Magnetization Statistics
+----------------------------------------
+Real variance: 0.4610716520347595
+Generated variance: 0.0005135184326171875
+Absolute magnetization variance error: 0.4605581336021423
+
+Correlation Function
+----------------------------------------
+Real correlations:
+[0.71613672 0.61151172 0.55913281 0.52671094 0.50477344 0.4898125
+ 0.47870313 0.47076563 0.46400781 0.45930859]
+
+Generated correlations:
+[0.77992187 0.77823047 0.77653516 0.77539062 0.77514844 0.77465234
+ 0.77483203 0.77526172 0.77480859 0.77468359]
+
+Mean log-correlation error:
+0.39447706152621975
