@@ -36,7 +36,7 @@ SWEEP_CONFIG = {
         'parameters': {
             'algo': {'values': ['ppodistill']},
             'learning_rate': {'values':[0.1, 0.00025]},
-            'clip_coef': {'values': [0.05, 0.15, 0.25]},
+            'clip_coef': {'values': [0.15, 0.25]},
             'gaelambda': {'values': [0.95,0.97]},
             'num_envs': {'values': [8]},
             'num_steps': {'values': [500]},
