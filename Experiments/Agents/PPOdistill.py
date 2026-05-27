@@ -2,7 +2,36 @@ from torch import nn
 from Experiments.Agents.nn_utils import build_network
 from torch.distributions import Categorical
 import torch
+class RunningMeanStd:
+    def __init__(self, epsilon=1e-4):
+        self.mean = 0.0
+        self.var = 1.0
+        self.count = epsilon
 
+    def update(self, x):
+        batch_mean = x.mean().item()
+        batch_var = x.var(unbiased=False).item()
+        batch_count = x.numel()
+
+        delta = batch_mean - self.mean
+        total_count = self.count + batch_count
+
+        new_mean = self.mean + delta * batch_count / total_count
+
+        m_a = self.var * self.count
+        m_b = batch_var * batch_count
+
+        M2 = (
+            m_a
+            + m_b
+            + delta**2 * self.count * batch_count / total_count
+        )
+
+        new_var = M2 / total_count
+
+        self.mean = new_mean
+        self.var = new_var
+        self.count = total_count
 
 class PPOdistillAgent(nn.Module):
     def __init__(self, env, num_filters = 64, rnd_lr=0.01):
@@ -55,6 +84,7 @@ class PPOdistillAgent(nn.Module):
             self.pred_reward.parameters(),
             lr=rnd_lr
         )
+        self.obs_rms = RunningMeanStd()
         
     def get_value(self, obs):
         return self.critic(obs)

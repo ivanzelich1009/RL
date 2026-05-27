@@ -158,7 +158,10 @@ def training_loop(
 
         with torch.no_grad():
             if agent.name == 'PPOdistill':
-                in_rewards = (in_rewards - in_rewards.mean(dim=0))/(in_rewards.std(dim=0) + 1e-8)
+                agent.obs_rms.update(in_rewards.cpu().numpy())
+                reward_std = torch.tensor(agent.obs_rms.var**0.5, dtype=torch.float32, device=device)
+                in_rewards = (in_rewards)/(reward_std + 1e-8)
+                in_rewards = torch.clamp(in_rewards, 0, 5)
                 rewards = rewards + args['distill_coef']*in_rewards
             next_value = agent.get_value(next_obs).reshape(1,-1)
             advantages = torch.zeros_like(rewards)
@@ -264,23 +267,15 @@ def training_loop(
                             pg2_loss = beta * kl_var
                             pg_loss = (pg1_loss + pg2_loss).mean()
 
-                    loss = pg_loss + args['entropy_coef']*entropy_loss + args['value_coef']*v_loss
+                    loss = pg_loss - args['entropy_coef']*entropy_loss + args['value_coef']*v_loss
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
-
-                    #Compute the RND exploration loss
-                    if agent.name == 'PPOdistill':
-                        exploration_loss = ((agent.target_rewards(b_obs[mb_inds])-agent.pred_rewards(b_obs[mb_inds]))**2).reshape(-1,).mean()
-                        agent.rnd_optimizer.zero_grad()
-                        exploration_loss.backward()
-                        agent.rnd_optimizer.step()
-
+                
                 '''Beta here is used if we don't use clipped policy loss, and instead use KL-penalty. 
                 We update it adaptively based on how the KL is doing compared to the target KL (a hyperparameter).
                 If the KL is too high, we increase the penalty, if it's too low, we decrease the penalty. If it's just right, we keep it the same.
                 '''
-
                 if agent.name == 'PPO' or agent.name=='PPOdistill':
                     if args['clip_ploss']:  # if clip loss and approx_kl > target kl, break
                         if args['target_kl'] is not None and approx_kl > args['target_kl']:
@@ -289,6 +284,17 @@ def training_loop(
                         beta = (beta / 2 if approx_kl < args['target_kl'] / 1.5 
                                 else (beta * 2 if approx_kl > args['target_kl'] * 1.5 else beta)
                     )
+                        
+            #Compute the RND exploration loss
+            if agent.name == 'PPOdistill':
+                np.random.shuffle(b_inds)
+                for start in range(0, args['batch_size'],args['minibatch_size']):
+                    end=start + args['minibatch_size']
+                    mb_inds = b_inds[start:end]
+                    exploration_loss = ((agent.target_rewards(b_obs[mb_inds])-agent.pred_rewards(b_obs[mb_inds]))**2).reshape(-1,).mean()
+                    agent.rnd_optimizer.zero_grad()
+                    exploration_loss.backward()
+                    agent.rnd_optimizer.step()
 
         y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
         var_y = np.var(y_true)

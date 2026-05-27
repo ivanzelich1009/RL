@@ -44,6 +44,8 @@ SWEEP_CONFIG = {
             'distill_coef': {'values': [0.5,1]},
             'clip_ploss': {'values': [True]},
             'total_timesteps': {'values': [2000000]},
+            'rnd_lr': {'values': [0.01]},
+            'anneal_lr': {'values': [True, False]},
         },
         'command': ['python3', '-m', 'Experiments.run'],
     },
